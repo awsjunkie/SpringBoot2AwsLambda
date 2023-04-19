@@ -1,0 +1,75 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '2.7.10'
+	id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+	id("com.github.johnrengelman.shadow") version "7.0.0"
+}
+
+group = 'com.awsjunkie'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+	jcenter()
+	maven { url "https://plugins.gradle.org/m2/" }
+	maven { url "https://repo.spring.io/milestone" }
+}
+
+ext {
+	set('springCloudVersion', "2021.0.6")
+}
+
+assemble.dependsOn = [shadowJar]
+
+jar {
+	manifest {
+		attributes 'Main-Class': 'com.awsjunkie.demo.SpringBoot2AwsLambdaApplication'
+	}
+}
+
+shadowJar {
+	archiveClassifier = 'aws'
+	dependencies {
+		exclude(
+			dependency("org.springframework.cloud:spring-cloud-function-web"))
+	}
+	// Required for Spring
+	mergeServiceFiles()
+	append 'META-INF/spring.handlers'
+	append 'META-INF/spring.schemas'
+	append 'META-INF/spring.tooling'
+	append 'META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports'
+	append 'META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports'
+	transform(PropertiesFileTransformer) {
+		paths = ['META-INF/spring.factories']
+		mergeStrategy = "append"
+	}
+}
+
+import com.github.jengelman.gradle.plugins.shadow.transformers.*
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.cloud:spring-cloud-function-context'
+	implementation("org.springframework.cloud:spring-cloud-function-adapter-aws")
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
